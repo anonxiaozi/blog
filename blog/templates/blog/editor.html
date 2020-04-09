@@ -1,0 +1,224 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+{% load blog_tools %}
+
+{% block css %}
+    <style>
+        .uptop {
+            position: relative;
+        {#width: 150px;#} width: 20%;
+            overflow: hidden;
+            margin: 10px;
+            float: left;
+        }
+
+        .upbutton {
+            z-index: 20;
+        }
+
+        .upimg {
+            position: absolute;
+            width: 140px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: 2px;
+            opacity: 0;
+            z-index: 10;
+            float: left;
+        }
+
+        .preview {
+            width: 60%;
+            float: left;
+            padding-top: 10px;
+            margin-left: -100px;
+        }
+
+        .preview li {
+            list-style: none;
+        }
+    </style>
+{% endblock %}
+
+{% block header %}
+    <header class="masthead" style="background-image: url({{ background_img }});height: 80px;">
+        <div class="overlay"></div>
+    </header>
+{% endblock %}
+
+{% block content %}
+
+    <form id="blogForm">
+        <div style="width: 90%; margin:0 auto;">
+            <div class="input-group mb-3" style="padding-bottom: 20px;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1">标题</span>
+                </div>
+                <input name="title" type="text" class="form-control" aria-label="title" aria-describedby="basic-addon1">
+            </div>
+            <textarea id="editor_id" name="content" style="width:100%;height:500px;">
+            </textarea>
+            <div class="input-group mb-3" style="padding-top: 20px;">
+                <input type="text" class="form-control" placeholder="标签" aria-label="label"
+                       aria-describedby="basic-addon1" name="label">
+            </div>
+            <div class="input-group mb-3" style="padding-top: 20px;">
+                <input type="text" class="form-control" placeholder="摘要" aria-label="summary"
+                       aria-describedby="basic-addon1" name="summary">
+            </div>
+            <div class="uptop">
+                <button class="btn btn-success upbutton" type="button">上传背景图片</button>
+                <input id="upimg" class="upimg" type="file" accept=".png, .jpg, .jpeg"/>
+            </div>
+            <div class="preview"></div>
+            <div style="float: right;">
+                <button type="button" class="btn btn-secondary btn-sm" style="margin-right: 20px">保存</button>
+                <button type="button" class="btn btn-primary btn-sm" id="submit">提交</button>
+            </div>
+        </div>
+    </form>
+    <hr style="margin-top: 100px;">
+{% endblock %}
+
+{% block js %}
+    <script charset="utf-8" src="{% static 'blog/kindeditor/kindeditor-all.js' %}"></script>
+    <script charset="utf-8" src="{% static 'blog/kindeditor/lang/zh-CN.js' %}"></script>
+    <script>
+        $(function () {
+            var editor;
+            KindEditor.ready(function (K) {
+                editor = K.create('#editor_id', {
+                    uploadJson: '{% url "blog:upload" %}',
+                    extraFileUploadParams: {
+                        csrfmiddlewaretoken: "{{ csrf_token }}",
+                    },
+                });
+            });
+
+            var input = document.querySelector('#upimg');
+            var preview = document.querySelector('.preview');
+            input.style.opacity = 0;
+            input.addEventListener('change', updateImageDisplay);
+
+            function updateImageDisplay() {
+                while (preview.firstChild) {
+                    preview.removeChild(preview.firstChild);
+                }
+                var curFiles = input.files;
+                if (curFiles.length === 0) {
+                    var para = document.createElement('p');
+                    para.textContent = 'No files currently selected for upload';
+                    preview.appendChild(para);
+                } else {
+                    var para = document.createElement('span');
+                    var curFile = curFiles[0];
+                    if (validFileType(curFile)) {       // 判断文件类型
+                        if (curFile.size > 1024 * 1024) {
+                            alert('文件最大1MB');       // 文件大于1MB，提示错误
+                        } else {
+                            var formData = new FormData();
+                            formData.append('background_img', curFile);
+                            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                            $.ajax({
+                                url: '{% url "blog:img" %}',
+                                type: 'POST',
+                                dataType: 'json',
+                                traditional: true,
+                                data: formData,
+                                processData: false,     // 不让ajax进行数据处理
+                                contentType: false,     // 不让ajax定义数据类型
+                                cache: false,
+                                success: function (result) {
+                                    if (result.status === 200) {
+                                        para.textContent = '   File name ' + curFile.name + ', file size ' + returnFileSize(curFile.size) + '.';
+                                        var image = document.createElement('img');
+                                        image.src = result.url;
+                                        image.setAttribute('width', '50px');   // 预览时，限制大小
+                                        image.setAttribute('height', '50px');   // 预览时，限制大小
+                                        preview.appendChild(image);
+                                        preview.appendChild(para);
+                                    } else {
+                                        $('[name=error_msg]').remove();
+                                        for (var i in result.data) {
+                                            var item = $('[name=' + i + ']');
+                                            if (result.data[i]) {
+                                                item.after($('<span name="error_msg" style="color: red; font-size: larger; margin-left: 15px;"> *' + result.data[i] + '</span>'));
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                        }
+                    } else {
+                        para.textContent = 'File name ' + curFiles[i].name + ': Not a valid file type. Update your selection.';
+                    }
+                    preview.appendChild(para);
+                }
+            }
+
+            var fileTypes = [
+                'image/jpeg',
+                'image/png',
+                'image/jpg',
+            ];
+
+            function validFileType(file) {
+                for (var i = 0; i < fileTypes.length; i++) {
+                    if (file.type === fileTypes[i]) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function returnFileSize(number) {
+                if (number < 1024) {
+                    return number + 'bytes';
+                } else if (number > 1024 && number < 1048576) {
+                    return (number / 1024).toFixed(1) + 'KB';
+                } else if (number > 1048576) {
+                    return (number / 1048576).toFixed(1) + 'MB';
+                }
+            }
+
+            $('#submit').click(function () {
+                editor.sync();      // sync 同步 kindeditor 中ifram的html数据到textarea中
+                var formData = new FormData($('#blogForm')[0]);
+                if (preview.firstChild) {
+                    formData.set('background_img', $('.preview img').prop('src'));
+                } else {
+                    formData.set('background_img', '');
+                }
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                $.ajax({
+                    url: '{% url "blog:new" %}',
+                    type: 'POST',
+                    dataType: 'json',
+                    traditional: true,
+                    data: formData,
+                    processData: false,     // 不让ajax进行数据处理
+                    contentType: false,     // 不让ajax定义数据类型
+                    cache: false,
+                    success: function (result) {
+                        if (result.status === 200) {
+                            console.log(result.data.url);
+                            location.href = result.data.url;
+                        } else {
+                            $('[name=error_msg]').remove();
+                            for (var i in result.data) {
+                                var item = $('[name=' + i + ']');
+                                if (result.data[i]) {
+                                    item.after($('<span name="error_msg" style="color: red; font-size: larger; margin-left: 15px;"> *' + result.data[i] + '</span>'));
+                                }
+                            }
+                        }
+                    }
+                });
+                return false;
+            });
+        })
+    </script>
+{% endblock %}

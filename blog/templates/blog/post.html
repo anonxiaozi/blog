@@ -1,0 +1,41 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+{% block css %}
+    <link href="{% static 'blog/css/emacs.css' %}" rel="stylesheet">
+    <style>
+        article .row div img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+{% endblock %}
+{% block header %}
+    <header class="masthead" style="background-image: url('/media/{{ blog.background_img }}')">
+        <div class="overlay"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <div class="post-heading">
+                        <h1>{{ blog.title }}</h1>
+                        <h2 class="subheading">{{ blog.summary }}</h2>
+                        <span class="meta">Posted by
+              <a href="#">{{ blog.user.user_name }}</a>
+                            {{ blog.create_time }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+{% block content %}
+    <article>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    {{ blog.content|safe }}
+                </div>
+            </div>
+        </div>
+    </article>
+    <hr>
+{% endblock %}

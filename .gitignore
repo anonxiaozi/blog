@@ -1,0 +1,7 @@
+.idea
+blog/logs
+do_blog/__pycache__
+blog/__pycache__
+db.sqlite3
+blog/migrations
+uploads

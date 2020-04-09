@@ -1,0 +1,99 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+{% load blog_tools %}
+{% load tz %}
+{% block header %}
+    <header class="masthead" style="background-image: url({% static 'blog/img/background/default.jpg' %})">
+        <div class="overlay"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <div class="site-heading">
+                        <h1>Bloke Blog</h1>
+                        <span class="subheading">Mr. Wang</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <ul class="nav justify-content-center nav-pills">
+                    <li class="nav-item">
+                        <a id="label_all" class="nav-link" href="{% url 'blog:index' %}">所有</a>
+                    </li>
+                    {% for label in labels %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="?label={{ label }}&search={{ search_data }}" id="label_{{ label }}">{{ label }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <hr>
+            </div>
+            <div class="col-lg-8 col-md-10 mx-auto">
+                {% for blog in blogs %}
+                    <div class="post-preview">
+                        <a href="{% url 'blog:blog' blog.id %}">
+                            <h3 class="post-title">
+                                {{ blog.title }}
+                            </h3>
+                            <h5 class="post-subtitle">
+                                {{ blog.summary }}
+                            </h5>
+                        </a>
+                        <p class="post-meta">Posted by
+                            {{ blog.user.user_name }}
+                            on {{ blog.create_time }}</p>
+                    </div>
+                    <hr>
+                {% endfor %}
+                <div class="clearfix" style="float: right; margin-right: 20%;">
+                    <nav aria-label="Page">
+                        <ul class="pagination">
+                            {% if blogs.has_previous %}
+                                <li class="page-item">
+                                    {% else %}
+                                <li class="page-item disabled">
+                            {% endif %}
+                            <a class="page-link" href="?label={{ label }}&search={{ search_data }}&page=1">&laquo;</a>
+                            </li>
+                            {% for pg in page_range %}
+                                {% if blogs.number == pg %}
+                                    <li class="page-item active" aria-current="page">
+                                        {% else %}
+                                    <li>
+                                {% endif %}
+                            <a class="page-link"
+                               href="?label={{ label }}&search={{ search_data }}&page={{ pg }}">{{ pg }}</a>
+                            </li>
+                            {% endfor %}
+                            {% if blogs.has_next %}
+                                <li class="page-item">
+                                    {% else %}
+                                <li class="page-item disabled">
+                            {% endif %}
+                            <a class="page-link" href="?label={{ label }}&search={{ search_data }}&page={{ blogs.paginator.num_pages }}">&raquo;</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr>
+{% endblock %}
+{% block js %}
+<script>
+$(function () {
+    if ('{{ a_label }}') {
+        $('#label_all').removeClass('active');
+        $('#label_{{ a_label }}').addClass('active');
+    }
+})
+</script>
+{% endblock %}
